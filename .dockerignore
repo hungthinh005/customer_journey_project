@@ -1,0 +1,73 @@
+# Git and GitHub
+.git
+.github
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+
+# Large Data & Models (Mounted via volumes in docker-compose)
+data/
+models/
+faiss_index/
+
+# Notebooks and Documentation
+notebooks/
+*.docx
+*.md
+
+# Testing
+.pytest_cache/
+tests/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Catch-all for stray data/model files
+*.csv
+*.parquet
+*.pt
+*.pth
+*.h5
+*.pkl
+*.index

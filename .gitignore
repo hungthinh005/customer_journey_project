@@ -1,0 +1,48 @@
+# Data
+data/raw/
+data/processed/
+
+# Model artifacts
+models/churn/*.pkl
+models/churn/*.parquet
+models/churn/*.csv
+models/churn/*.png
+models/churn/*.txt
+models/retrieval/*.pkl
+models/retrieval/*.model
+models/retrieval/*.pt
+models/retrieval/embeddings/
+models/ranking/*.pt
+models/ranking/*.pkl
+faiss_index/*.bin
+faiss_index/*.pkl
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/*.ipynb
+
+# Environment
+.env
