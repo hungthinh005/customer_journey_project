@@ -18,43 +18,7 @@ Build a production-ready system that:
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────── OFFLINE PIPELINE ───────────────────┐
-│                                                         │
-│  Raw Data → Cleaning → Feature Engineering              │
-│                 │                                       │
-│     ┌───────────┼───────────┐                          │
-│     ▼           ▼           ▼                          │
-│  BG/NBD    Survival     Retrieval Models               │
-│  Model      Analysis    (ALS/Item2Vec/Two-Tower)       │
-│     │           │           │                          │
-│     ▼           ▼           ▼                          │
-│  Churn     Model        FAISS Index                    │
-│  Scores    Comparison   + Embeddings                   │
-│     │                       │                          │
-│     └───────┬───────────────┘                          │
-│             ▼                                          │
-│      NeuMF Ranking Model                               │
-└─────────────────────────────────────────────────────────┘
-
-┌─────────────────── ONLINE PIPELINE ────────────────────┐
-│                                                         │
-│  API Request (customer_id)                              │
-│       │                                                │
-│       ▼                                                │
-│  Churn Scoring ──► FAISS Retrieval ──► NeuMF Ranking   │
-│       │                                    │           │
-│       │                             LLM Reranker       │
-│       │                                    │           │
-│       └────────────┬───────────────────────┘           │
-│                    ▼                                   │
-│            Decision Layer                              │
-│     (Retention Action + Top-K Products)                │
-│                    │                                   │
-│                    ▼                                   │
-│             API Response                               │
-└─────────────────────────────────────────────────────────┘
-```
+![System Architecture](system_architecture.png)
 
 ## 🚀 Quick Start
 
