@@ -1,0 +1,16 @@
+line-length = 120
+
+[lint]
+select = ["F", "E", "W"]
+ignore = [
+    "E402",  # module-level import not at top (needed for matplotlib.use("Agg") before pyplot)
+    "E501",  # line too long — managed by line-length = 120 above
+]
+
+[lint.per-file-ignores]
+# Evaluation scripts use matplotlib backend setup before pyplot import
+"evaluation/*.py" = ["E402"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

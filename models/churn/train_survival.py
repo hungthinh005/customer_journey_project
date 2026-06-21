@@ -15,13 +15,13 @@ from pathlib import Path
 
 import joblib
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from lifelines import CoxPHFitter, WeibullAFTFitter, KaplanMeierFitter
 from lifelines.utils import concordance_index
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -34,12 +34,10 @@ from sklearn.metrics import (
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import (
     ALL_FEATURES,
-    CHURN_WINDOW_DAYS,
     COX_L1_RATIO,
     COX_PENALIZER,
     DATA_PROCESSED_DIR,
     MODELS_DIR,
-    RANDOM_SEED,
 )
 
 
@@ -52,9 +50,7 @@ def prepare_survival_data():
     - event: 1 if churned (event observed), 0 if censored (still active)
     - features: covariates for the model
     """
-    customer_features = pd.read_parquet(
-        DATA_PROCESSED_DIR / "customer_features.parquet"
-    )
+    customer_features = pd.read_parquet(DATA_PROCESSED_DIR / "customer_features.parquet")
 
     # Duration = days_as_customer + recency (approximate time-to-event)
     # For churned customers: recency is the time since last purchase
@@ -68,9 +64,7 @@ def prepare_survival_data():
     feature_cols = [c for c in ALL_FEATURES if c in customer_features.columns]
 
     # Clean up features
-    survival_df = customer_features[
-        ["customer_id", "duration", "event"] + feature_cols
-    ].copy()
+    survival_df = customer_features[["customer_id", "duration", "event"] + feature_cols].copy()
 
     # Handle missing/infinite values
     survival_df = survival_df.replace([np.inf, -np.inf], np.nan)
@@ -243,12 +237,8 @@ def train_survival():
 
     # Evaluate both (use the feature subset each model was trained on)
     print("\n[3/4] Evaluating models...")
-    cox_prob, cox_pred, cox_metrics = evaluate_survival_model(
-        cph, survival_df, cox_feature_cols, "Cox_PH"
-    )
-    aft_prob, aft_pred, aft_metrics = evaluate_survival_model(
-        aft, survival_df, aft_feature_cols, "Weibull_AFT"
-    )
+    cox_prob, cox_pred, cox_metrics = evaluate_survival_model(cph, survival_df, cox_feature_cols, "Cox_PH")
+    aft_prob, aft_pred, aft_metrics = evaluate_survival_model(aft, survival_df, aft_feature_cols, "Weibull_AFT")
 
     # Select best model
     best_model_name = "Cox_PH" if cox_metrics["auc_roc"] >= aft_metrics["auc_roc"] else "Weibull_AFT"

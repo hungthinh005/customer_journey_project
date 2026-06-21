@@ -54,9 +54,16 @@ def _load_frame() -> pd.DataFrame:
             .all()
         )
     cols = [
-        "customer_id", "churn_probability", "churn_risk_level", "predicted_clv",
-        "monetary", "frequency", "recency", "days_as_customer",
-        "return_rate", "product_diversity",
+        "customer_id",
+        "churn_probability",
+        "churn_risk_level",
+        "predicted_clv",
+        "monetary",
+        "frequency",
+        "recency",
+        "days_as_customer",
+        "return_rate",
+        "product_diversity",
     ]
     return pd.DataFrame(rows, columns=cols)
 
@@ -113,14 +120,16 @@ def run_segmentation(value_percentile: float = 0.70, new_customer_days: int = 60
         # Bump priority for higher churn probability so the agent acts on the
         # most urgent customers first when batch capacity is limited.
         churn_boost = int((r["churn_probability"] or 0) * 20)
-        rows.append({
-            "customer_id": int(r["customer_id"]),
-            "segment": seg,
-            "playbook": playbook,
-            "priority": priority + churn_boost,
-            "rationale": f"{desc}. risk={r['churn_risk_level']}, churn_p={r['churn_probability']:.2f}.",
-            "updated_at": datetime.utcnow(),
-        })
+        rows.append(
+            {
+                "customer_id": int(r["customer_id"]),
+                "segment": seg,
+                "playbook": playbook,
+                "priority": priority + churn_boost,
+                "rationale": f"{desc}. risk={r['churn_risk_level']}, churn_p={r['churn_probability']:.2f}.",
+                "updated_at": datetime.utcnow(),
+            }
+        )
 
     counts = pd.Series([x["segment"] for x in rows]).value_counts().to_dict()
 

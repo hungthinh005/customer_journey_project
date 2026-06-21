@@ -9,13 +9,14 @@ Ablation Study: Compare system variants.
 import sys
 from pathlib import Path
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import DATA_PROCESSED_DIR, EVAL_K_VALUES, MODELS_DIR
+from config import DATA_PROCESSED_DIR, MODELS_DIR
 
 
 def ablation_study():
@@ -26,10 +27,8 @@ def ablation_study():
     save_dir = MODELS_DIR.parent / "evaluation"
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load customer features with churn
-    try:
-        customers = pd.read_parquet(DATA_PROCESSED_DIR / "customer_features.parquet")
-    except FileNotFoundError:
+    # Verify feature engineering has been run before proceeding.
+    if not (DATA_PROCESSED_DIR / "customer_features.parquet").exists():
         print("  Run feature engineering first!")
         return
 
@@ -41,14 +40,16 @@ def ablation_study():
     if (churn_dir / "model_comparison.csv").exists():
         comp = pd.read_csv(churn_dir / "model_comparison.csv")
         best_churn = comp.iloc[0]
-        variants.append({
-            "Variant": "Churn Only",
-            "Churn AUC": best_churn["auc_roc"],
-            "Churn F1": best_churn["f1_score"],
-            "Rec Recall@10": 0.0,
-            "Rec NDCG@10": 0.0,
-            "Description": "Predict churn, random product suggestion",
-        })
+        variants.append(
+            {
+                "Variant": "Churn Only",
+                "Churn AUC": best_churn["auc_roc"],
+                "Churn F1": best_churn["f1_score"],
+                "Rec Recall@10": 0.0,
+                "Rec NDCG@10": 0.0,
+                "Description": "Predict churn, random product suggestion",
+            }
+        )
 
     # 2. Churn + Retrieval
     ret_dir = MODELS_DIR / "retrieval"
@@ -59,37 +60,43 @@ def ablation_study():
         churn_f1 = variants[0]["Churn F1"] if variants else 0.0
         recall_col = [c for c in ret_comp.columns if "recall@10" in c]
         ndcg_col = [c for c in ret_comp.columns if "ndcg@10" in c]
-        variants.append({
-            "Variant": "Churn + Retrieval",
-            "Churn AUC": churn_auc,
-            "Churn F1": churn_f1,
-            "Rec Recall@10": best_ret[recall_col[0]] if recall_col else 0.0,
-            "Rec NDCG@10": best_ret[ndcg_col[0]] if ndcg_col else 0.0,
-            "Description": f"Churn + {best_ret['model']} retrieval",
-        })
+        variants.append(
+            {
+                "Variant": "Churn + Retrieval",
+                "Churn AUC": churn_auc,
+                "Churn F1": churn_f1,
+                "Rec Recall@10": best_ret[recall_col[0]] if recall_col else 0.0,
+                "Rec NDCG@10": best_ret[ndcg_col[0]] if ndcg_col else 0.0,
+                "Description": f"Churn + {best_ret['model']} retrieval",
+            }
+        )
 
     # 3. Churn + Retrieval + Ranking (full system)
     if len(variants) >= 2:
         # Ranking should improve upon retrieval-only
-        variants.append({
-            "Variant": "Churn + Retrieval + Ranking",
-            "Churn AUC": variants[0]["Churn AUC"],
-            "Churn F1": variants[0]["Churn F1"],
-            "Rec Recall@10": variants[1]["Rec Recall@10"],  # Retrieval recall stays same
-            "Rec NDCG@10": variants[1]["Rec NDCG@10"] * 1.1,  # Ranking improves NDCG
-            "Description": "Full pipeline with NeuMF ranking",
-        })
+        variants.append(
+            {
+                "Variant": "Churn + Retrieval + Ranking",
+                "Churn AUC": variants[0]["Churn AUC"],
+                "Churn F1": variants[0]["Churn F1"],
+                "Rec Recall@10": variants[1]["Rec Recall@10"],  # Retrieval recall stays same
+                "Rec NDCG@10": variants[1]["Rec NDCG@10"] * 1.1,  # Ranking improves NDCG
+                "Description": "Full pipeline with NeuMF ranking",
+            }
+        )
 
     # 4. With LLM reranker (optional)
     if len(variants) >= 3:
-        variants.append({
-            "Variant": "Full + LLM Reranker",
-            "Churn AUC": variants[0]["Churn AUC"],
-            "Churn F1": variants[0]["Churn F1"],
-            "Rec Recall@10": variants[2]["Rec Recall@10"],
-            "Rec NDCG@10": variants[2]["Rec NDCG@10"] * 1.05,
-            "Description": "Full pipeline + LLM semantic reranking",
-        })
+        variants.append(
+            {
+                "Variant": "Full + LLM Reranker",
+                "Churn AUC": variants[0]["Churn AUC"],
+                "Churn F1": variants[0]["Churn F1"],
+                "Rec Recall@10": variants[2]["Rec Recall@10"],
+                "Rec NDCG@10": variants[2]["Rec NDCG@10"] * 1.05,
+                "Description": "Full pipeline + LLM semantic reranking",
+            }
+        )
 
     if not variants:
         print("  No models trained yet!")

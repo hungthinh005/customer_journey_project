@@ -18,9 +18,14 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import (
-    EMBEDDING_DIM, TWO_TOWER_BATCH_SIZE, TWO_TOWER_EPOCHS,
-    TWO_TOWER_HIDDEN_DIM, TWO_TOWER_LR, DATA_PROCESSED_DIR,
-    MODELS_DIR, RANDOM_SEED,
+    EMBEDDING_DIM,
+    TWO_TOWER_BATCH_SIZE,
+    TWO_TOWER_EPOCHS,
+    TWO_TOWER_HIDDEN_DIM,
+    TWO_TOWER_LR,
+    DATA_PROCESSED_DIR,
+    MODELS_DIR,
+    RANDOM_SEED,
 )
 
 torch.manual_seed(RANDOM_SEED)
@@ -42,9 +47,11 @@ class InteractionDataset(Dataset):
     def __getitem__(self, idx):
         n_pos = len(self.user_indices)
         if idx < n_pos:
-            return (torch.tensor(self.user_indices[idx], dtype=torch.long),
-                    torch.tensor(self.item_indices[idx], dtype=torch.long),
-                    torch.tensor(1.0, dtype=torch.float))
+            return (
+                torch.tensor(self.user_indices[idx], dtype=torch.long),
+                torch.tensor(self.item_indices[idx], dtype=torch.long),
+                torch.tensor(1.0, dtype=torch.float),
+            )
         else:
             pos_idx = idx % n_pos
             user = self.user_indices[pos_idx]
@@ -52,9 +59,11 @@ class InteractionDataset(Dataset):
                 neg_item = np.random.randint(0, self.n_items)
                 if (user, neg_item) not in self.positive_pairs:
                     break
-            return (torch.tensor(user, dtype=torch.long),
-                    torch.tensor(neg_item, dtype=torch.long),
-                    torch.tensor(0.0, dtype=torch.float))
+            return (
+                torch.tensor(user, dtype=torch.long),
+                torch.tensor(neg_item, dtype=torch.long),
+                torch.tensor(0.0, dtype=torch.float),
+            )
 
 
 class TwoTowerModel(nn.Module):
@@ -62,15 +71,21 @@ class TwoTowerModel(nn.Module):
         super().__init__()
         self.user_embedding = nn.Embedding(n_users, hidden_dim)
         self.user_tower = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
-            nn.BatchNorm1d(hidden_dim), nn.Dropout(0.2),
-            nn.Linear(hidden_dim, embedding_dim), nn.LayerNorm(embedding_dim),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.BatchNorm1d(hidden_dim),
+            nn.Dropout(0.2),
+            nn.Linear(hidden_dim, embedding_dim),
+            nn.LayerNorm(embedding_dim),
         )
         self.item_embedding = nn.Embedding(n_items, hidden_dim)
         self.item_tower = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
-            nn.BatchNorm1d(hidden_dim), nn.Dropout(0.2),
-            nn.Linear(hidden_dim, embedding_dim), nn.LayerNorm(embedding_dim),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.BatchNorm1d(hidden_dim),
+            nn.Dropout(0.2),
+            nn.Linear(hidden_dim, embedding_dim),
+            nn.LayerNorm(embedding_dim),
         )
         self._init_weights()
 
@@ -122,7 +137,7 @@ def train_two_tower():
     for epoch in range(TWO_TOWER_EPOCHS):
         model.train()
         total_loss, n_batches = 0, 0
-        for user_idx, item_idx, label in tqdm(dataloader, desc=f"Epoch {epoch+1}/{TWO_TOWER_EPOCHS}", leave=False):
+        for user_idx, item_idx, label in tqdm(dataloader, desc=f"Epoch {epoch + 1}/{TWO_TOWER_EPOCHS}", leave=False):
             user_idx, item_idx, label = user_idx.to(DEVICE), item_idx.to(DEVICE), label.to(DEVICE)
             optimizer.zero_grad()
             loss = criterion(model(user_idx, item_idx), label)
@@ -131,16 +146,16 @@ def train_two_tower():
             total_loss += loss.item()
             n_batches += 1
         if (epoch + 1) % 5 == 0 or epoch == 0:
-            print(f"  Epoch {epoch+1}: Loss = {total_loss/max(n_batches,1):.4f}")
+            print(f"  Epoch {epoch + 1}: Loss = {total_loss / max(n_batches, 1):.4f}")
 
     model.eval()
     with torch.no_grad():
         user_embeddings, item_embeddings = [], []
         for i in range(0, n_users, 4096):
-            batch = torch.arange(i, min(i+4096, n_users), device=DEVICE)
+            batch = torch.arange(i, min(i + 4096, n_users), device=DEVICE)
             user_embeddings.append(model.get_user_embedding(batch).cpu().numpy())
         for i in range(0, n_items, 4096):
-            batch = torch.arange(i, min(i+4096, n_items), device=DEVICE)
+            batch = torch.arange(i, min(i + 4096, n_items), device=DEVICE)
             item_embeddings.append(model.get_item_embedding(batch).cpu().numpy())
         user_embeddings = np.concatenate(user_embeddings)
         item_embeddings = np.concatenate(item_embeddings)
@@ -151,10 +166,14 @@ def train_two_tower():
     torch.save(model.state_dict(), save_dir / "two_tower_model.pt")
     np.save(embed_dir / "two_tower_user_embeddings.npy", user_embeddings)
     np.save(embed_dir / "two_tower_item_embeddings.npy", item_embeddings)
-    mappings = {"user_to_idx": user_to_idx, "item_to_idx": item_to_idx,
-                "idx_to_user": {v: k for k, v in user_to_idx.items()},
-                "idx_to_item": {v: k for k, v in item_to_idx.items()},
-                "n_users": n_users, "n_items": n_items}
+    mappings = {
+        "user_to_idx": user_to_idx,
+        "item_to_idx": item_to_idx,
+        "idx_to_user": {v: k for k, v in user_to_idx.items()},
+        "idx_to_item": {v: k for k, v in item_to_idx.items()},
+        "n_users": n_users,
+        "n_items": n_items,
+    }
     joblib.dump(mappings, save_dir / "two_tower_mappings.pkl")
     print(f"\n✅ Two-Tower model saved to: {save_dir}")
     return model, user_embeddings, item_embeddings, mappings

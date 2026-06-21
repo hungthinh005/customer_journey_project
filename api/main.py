@@ -72,7 +72,11 @@ async def add_request_id(request: Request, call_next):
     response.headers["x-request-id"] = request_id
     logger.info(
         "request id=%s method=%s path=%s status=%s ms=%.1f",
-        request_id, request.method, request.url.path, response.status_code, elapsed * 1000,
+        request_id,
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed * 1000,
     )
     return response
 
@@ -148,4 +152,5 @@ async def list_customers():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

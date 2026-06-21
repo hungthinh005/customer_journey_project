@@ -44,8 +44,10 @@ def engagement_pipeline():
     def load_scores() -> int:
         """Load latest features + churn predictions into the serving DB."""
         import sys
+
         sys.path.insert(0, PROJECT_DIR)
         from db.load_to_db import main as load_main
+
         load_main()
         return 1
 
@@ -53,18 +55,27 @@ def engagement_pipeline():
     def segment_customers(_loaded: int) -> list:
         """Assign segments and return the list of segments that have customers."""
         import sys
+
         sys.path.insert(0, PROJECT_DIR)
         from segmentation.segment_users import run_segmentation
+
         counts = run_segmentation()
         # Order segments by total priority interest (high-value/at-risk first).
-        ordered = ["high_value_at_risk", "price_sensitive_at_risk", "new_promising",
-                   "dormant_low_value", "loyal_active", "standard"]
+        ordered = [
+            "high_value_at_risk",
+            "price_sensitive_at_risk",
+            "new_promising",
+            "dormant_low_value",
+            "loyal_active",
+            "standard",
+        ]
         return [s for s in ordered if counts.get(s, 0) > 0]
 
     @task
     def engage(segment_name: str) -> dict:
         """Run the retention agent across one segment's top-priority customers."""
         import sys
+
         sys.path.insert(0, PROJECT_DIR)
         from airflow.operators.python import get_current_context
         from agent.run_agent import run_for_segment
@@ -90,14 +101,17 @@ def engagement_pipeline():
     @task.branch
     def should_check_drift() -> str:
         from airflow.operators.python import get_current_context
+
         context = get_current_context()
         return "drift_report" if context["params"]["drift_check"] else "skip_drift"
 
     @task
     def drift_report() -> str:
         import sys
+
         sys.path.insert(0, PROJECT_DIR)
         from monitoring.drift_report import run_drift_report
+
         return run_drift_report()
 
     @task

@@ -23,8 +23,7 @@ PLAYBOOK_GUIDANCE = {
         "friendly nudge with a couple of broadly popular items. No large discount."
     ),
     "standard_recommendations": (
-        "Stable mid-tier customer. Send tasteful personalized recommendations with little or "
-        "no discount."
+        "Stable mid-tier customer. Send tasteful personalized recommendations with little or no discount."
     ),
 }
 

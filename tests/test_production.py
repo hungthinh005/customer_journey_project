@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def test_settings_defaults():
     from settings import settings
+
     assert settings.agent_max_discount <= 1.0
     assert settings.smtp_port > 0
     assert "postgresql" in settings.database_url
@@ -19,11 +20,14 @@ def test_segment_assignment_high_value_at_risk():
     from segmentation.segment_users import _assign_segment
 
     row = {
-        "churn_risk_level": "HIGH", "predicted_clv": 5000.0, "monetary": 4000.0,
-        "days_as_customer": 400, "frequency": 20, "return_rate": 0.0,
+        "churn_risk_level": "HIGH",
+        "predicted_clv": 5000.0,
+        "monetary": 4000.0,
+        "days_as_customer": 400,
+        "frequency": 20,
+        "return_rate": 0.0,
     }
-    seg = _assign_segment(row, value_threshold=1000.0, new_customer_days=60,
-                          price_sensitive_return_rate=0.1)
+    seg = _assign_segment(row, value_threshold=1000.0, new_customer_days=60, price_sensitive_return_rate=0.1)
     assert seg == "high_value_at_risk"
 
 
@@ -31,11 +35,14 @@ def test_segment_assignment_new_promising():
     from segmentation.segment_users import _assign_segment
 
     row = {
-        "churn_risk_level": "MEDIUM", "predicted_clv": 50.0, "monetary": 50.0,
-        "days_as_customer": 20, "frequency": 3, "return_rate": 0.0,
+        "churn_risk_level": "MEDIUM",
+        "predicted_clv": 50.0,
+        "monetary": 50.0,
+        "days_as_customer": 20,
+        "frequency": 3,
+        "return_rate": 0.0,
     }
-    seg = _assign_segment(row, value_threshold=1000.0, new_customer_days=60,
-                          price_sensitive_return_rate=0.1)
+    seg = _assign_segment(row, value_threshold=1000.0, new_customer_days=60, price_sensitive_return_rate=0.1)
     assert seg == "new_promising"
 
 
@@ -43,11 +50,14 @@ def test_segment_assignment_loyal_active():
     from segmentation.segment_users import _assign_segment
 
     row = {
-        "churn_risk_level": "LOW", "predicted_clv": 9000.0, "monetary": 9000.0,
-        "days_as_customer": 500, "frequency": 30, "return_rate": 0.0,
+        "churn_risk_level": "LOW",
+        "predicted_clv": 9000.0,
+        "monetary": 9000.0,
+        "days_as_customer": 500,
+        "frequency": 30,
+        "return_rate": 0.0,
     }
-    seg = _assign_segment(row, value_threshold=1000.0, new_customer_days=60,
-                          price_sensitive_return_rate=0.1)
+    seg = _assign_segment(row, value_threshold=1000.0, new_customer_days=60, price_sensitive_return_rate=0.1)
     assert seg == "loyal_active"
 
 

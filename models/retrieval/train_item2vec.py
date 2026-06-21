@@ -35,11 +35,7 @@ def build_purchase_sequences(transactions):
     transactions = transactions.sort_values(["customer_id", "invoice_date"])
 
     # Group by customer, get list of stock codes in order
-    sequences = (
-        transactions.groupby("customer_id")["stock_code"]
-        .apply(list)
-        .reset_index()
-    )
+    sequences = transactions.groupby("customer_id")["stock_code"].apply(list).reset_index()
     sequences.columns = ["customer_id", "sequence"]
 
     # Filter: only keep sequences with at least 2 items
@@ -60,7 +56,6 @@ def train_item2vec():
 
     # Load transactions
     transactions = pd.read_parquet(DATA_PROCESSED_DIR / "transactions_clean.parquet")
-    interactions = pd.read_parquet(DATA_PROCESSED_DIR / "interactions.parquet")
     print(f"\nLoaded {len(transactions):,} transactions")
 
     # Build purchase sequences
