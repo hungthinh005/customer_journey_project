@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import (
     DATA_PROCESSED_DIR, EMBEDDING_DIM, MODELS_DIR,
     RANDOM_SEED, RANKING_BATCH_SIZE, RANKING_EPOCHS,
-    RANKING_GMF_DIM, RANKING_LR, RANKING_MLP_DIMS, RANKING_TOP_K,
+    RANKING_GMF_DIM, RANKING_LR, RANKING_MLP_DIMS,
 )
 
 torch.manual_seed(RANDOM_SEED)
@@ -193,10 +193,10 @@ def train_ranking():
     for epoch in range(RANKING_EPOCHS):
         model.train()
         total_loss, n_batches = 0, 0
-        for u, i, c, l in tqdm(dataloader, desc=f"Epoch {epoch+1}/{RANKING_EPOCHS}", leave=False):
-            u, i, c, l = u.to(DEVICE), i.to(DEVICE), c.to(DEVICE), l.to(DEVICE)
+        for u, i, c, label in tqdm(dataloader, desc=f"Epoch {epoch+1}/{RANKING_EPOCHS}", leave=False):
+            u, i, c, label = u.to(DEVICE), i.to(DEVICE), c.to(DEVICE), label.to(DEVICE)
             optimizer.zero_grad()
-            loss = criterion(model(u, i, c), l)
+            loss = criterion(model(u, i, c), label)
             loss.backward()
             optimizer.step()
             total_loss += loss.item()

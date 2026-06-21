@@ -24,7 +24,6 @@ from config import (
     CHURN_WINDOW_DAYS,
     DATA_PROCESSED_DIR,
     DATA_RAW_DIR,
-    RANDOM_SEED,
 )
 
 
@@ -122,7 +121,6 @@ def create_time_splits(df):
     """
     max_date = df["invoice_date"].max()
     min_date = df["invoice_date"].min()
-    total_days = (max_date - min_date).days
 
     # We need the last CHURN_WINDOW_DAYS for test label generation
     observation_end = max_date - pd.Timedelta(days=CHURN_WINDOW_DAYS)
@@ -142,7 +140,7 @@ def create_time_splits(df):
         "observation_end": observation_end,
     }
 
-    print(f"\n  Time Splits:")
+    print("\n  Time Splits:")
     print(f"    Train: {splits['train_start'].date()} to {splits['train_end'].date()}")
     print(f"    Val:   {splits['val_start'].date()} to {splits['val_end'].date()}")
     print(f"    Test label window: {splits['test_label_start'].date()} to {splits['test_label_end'].date()}")
@@ -271,7 +269,7 @@ def create_interaction_dataset(df):
     # Create implicit rating (log-scaled purchase count)
     interactions["rating"] = np.log1p(interactions["n_purchases"])
 
-    print(f"\n  Interaction dataset:")
+    print("\n  Interaction dataset:")
     print(f"    Records: {len(interactions):,}")
     print(f"    Unique users: {interactions['customer_id'].nunique():,}")
     print(f"    Unique items: {interactions['stock_code'].nunique():,}")
@@ -313,7 +311,7 @@ def create_bgnbd_dataset(df, reference_date):
         observation_period_end=reference_date,
     )
 
-    print(f"\n  BG/NBD dataset:")
+    print("\n  BG/NBD dataset:")
     print(f"    Customers: {len(summary):,}")
     print(f"    Avg frequency: {summary['frequency'].mean():.2f}")
     print(f"    Avg recency: {summary['recency'].mean():.1f} days")

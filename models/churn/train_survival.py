@@ -21,7 +21,6 @@ import numpy as np
 import pandas as pd
 from lifelines import CoxPHFitter, WeibullAFTFitter, KaplanMeierFitter
 from lifelines.utils import concordance_index
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -34,12 +33,10 @@ from sklearn.metrics import (
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import (
     ALL_FEATURES,
-    CHURN_WINDOW_DAYS,
     COX_L1_RATIO,
     COX_PENALIZER,
     DATA_PROCESSED_DIR,
     MODELS_DIR,
-    RANDOM_SEED,
 )
 
 

@@ -13,14 +13,12 @@ Combined with Gamma-Gamma model for monetary value prediction.
 import sys
 from pathlib import Path
 
-import joblib
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from lifetimes import BetaGeoFitter, GammaGammaFitter
-from lifetimes.plotting import plot_frequency_recency_matrix, plot_probability_alive_matrix
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -31,7 +29,7 @@ from sklearn.metrics import (
 )
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from config import BGNBD_PENALIZER, DATA_PROCESSED_DIR, MODELS_DIR, RANDOM_SEED
+from config import BGNBD_PENALIZER, DATA_PROCESSED_DIR, MODELS_DIR
 
 
 def train_bgnbd():
@@ -159,7 +157,7 @@ def train_bgnbd():
 
     # Use lifetimes built-in save_model which handles pickling better
     bgf.save_model(save_dir / "bgnbd_model.pkl")
-    
+
     # Check if ggf was defined in the local scope
     if "ggf" in locals():
         ggf.save_model(save_dir / "gamma_gamma_model.pkl")

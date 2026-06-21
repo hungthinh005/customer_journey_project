@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import EVAL_K_VALUES, MODELS_DIR
+from config import MODELS_DIR
 
 
 def evaluate_rec():
@@ -26,7 +26,7 @@ def evaluate_rec():
     else:
         print("  Run compare_retrieval.py first!")
 
-    print(f"\n✅ Recommendation evaluation complete")
+    print("\n✅ Recommendation evaluation complete")
 
 
 if __name__ == "__main__":
