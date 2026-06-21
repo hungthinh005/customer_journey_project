@@ -19,6 +19,7 @@ from models.ranking.train_ranking import NeuMF
 
 try:
     from settings import settings
+
     _READ_FROM_DB = settings.read_from_db
 except Exception:
     _READ_FROM_DB = False
@@ -31,8 +32,10 @@ class InferenceEngine:
 
     def __init__(self):
         self.loaded = {
-            "churn_model": False, "retrieval": False,
-            "faiss_index": False, "ranking_model": False,
+            "churn_model": False,
+            "retrieval": False,
+            "faiss_index": False,
+            "ranking_model": False,
         }
         self.read_from_db = _READ_FROM_DB
         self._load_models()
@@ -122,6 +125,7 @@ class InferenceEngine:
         if self.read_from_db:
             try:
                 from db.repository import get_churn_prediction as _db_churn
+
                 db_row = _db_churn(int(customer_id))
                 if db_row is not None:
                     return {
@@ -179,7 +183,7 @@ class InferenceEngine:
 
         idx_to_item = self.retrieval_mappings.get("idx_to_item", {})
         items = [idx_to_item.get(int(i), str(i)) for i in indices[0] if i >= 0]
-        scores = distances[0][:len(items)].tolist()
+        scores = distances[0][: len(items)].tolist()
 
         return items, scores
 
@@ -245,11 +249,17 @@ class InferenceEngine:
         if use_llm:
             try:
                 from models.reranker.llm_reranker import rerank_with_llm
+
                 customer_features = pd.read_parquet(DATA_PROCESSED_DIR / "customer_features.parquet")
                 interactions = pd.read_parquet(DATA_PROCESSED_DIR / "interactions.parquet")
                 ranked_items, ranked_scores, _ = rerank_with_llm(
-                    customer_id, ranked_items, ranked_scores,
-                    customer_features, self.item_metadata, interactions, churn_prob,
+                    customer_id,
+                    ranked_items,
+                    ranked_scores,
+                    customer_features,
+                    self.item_metadata,
+                    interactions,
+                    churn_prob,
                 )
             except Exception as e:
                 print(f"LLM reranking failed: {e}")
@@ -266,12 +276,14 @@ class InferenceEngine:
 
         recommendations = []
         for rank, (item, score) in enumerate(zip(ranked_items, ranked_scores), 1):
-            recommendations.append({
-                "stock_code": str(item),
-                "description": self.get_item_description(str(item)),
-                "score": float(score),
-                "rank": rank,
-            })
+            recommendations.append(
+                {
+                    "stock_code": str(item),
+                    "description": self.get_item_description(str(item)),
+                    "score": float(score),
+                    "rank": rank,
+                }
+            )
 
         return {
             "customer_id": customer_id,

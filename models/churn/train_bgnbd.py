@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -163,8 +164,7 @@ def train_bgnbd():
         ggf.save_model(save_dir / "gamma_gamma_model.pkl")
 
     # Save predictions
-    pred_cols = ["churn", "p_alive", "churn_prob_bgnbd", "churn_pred_bgnbd",
-                 "predicted_purchases_90d", "predicted_clv"]
+    pred_cols = ["churn", "p_alive", "churn_prob_bgnbd", "churn_pred_bgnbd", "predicted_purchases_90d", "predicted_clv"]
     pred_cols = [c for c in pred_cols if c in summary.columns]
     summary[pred_cols].to_parquet(save_dir / "bgnbd_predictions.parquet")
 

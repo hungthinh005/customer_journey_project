@@ -34,15 +34,21 @@ def evaluate_churn():
         preds = pd.read_parquet(bgnbd_file)
         if "churn" in preds.columns and "churn_prob_bgnbd" in preds.columns:
             auc = roc_auc_score(preds["churn"], preds["churn_prob_bgnbd"])
-            pred_labels = preds["churn_pred_bgnbd"] if "churn_pred_bgnbd" in preds.columns else (preds["churn_prob_bgnbd"] > 0.5).astype(int)
-            results.append({
-                "Model": "BG/NBD",
-                "AUC-ROC": auc,
-                "Precision": precision_score(preds["churn"], pred_labels),
-                "Recall": recall_score(preds["churn"], pred_labels),
-                "F1": f1_score(preds["churn"], pred_labels),
-                "Accuracy": accuracy_score(preds["churn"], pred_labels),
-            })
+            pred_labels = (
+                preds["churn_pred_bgnbd"]
+                if "churn_pred_bgnbd" in preds.columns
+                else (preds["churn_prob_bgnbd"] > 0.5).astype(int)
+            )
+            results.append(
+                {
+                    "Model": "BG/NBD",
+                    "AUC-ROC": auc,
+                    "Precision": precision_score(preds["churn"], pred_labels),
+                    "Recall": recall_score(preds["churn"], pred_labels),
+                    "F1": f1_score(preds["churn"], pred_labels),
+                    "Accuracy": accuracy_score(preds["churn"], pred_labels),
+                }
+            )
             print(f"\nBG/NBD: AUC={auc:.4f}")
             print(classification_report(preds["churn"], pred_labels))
 
@@ -54,14 +60,16 @@ def evaluate_churn():
             if col in preds.columns and "churn_actual" in preds.columns:
                 auc = roc_auc_score(preds["churn_actual"], preds[col])
                 pred_labels = (preds[col] > 0.5).astype(int)
-                results.append({
-                    "Model": name,
-                    "AUC-ROC": auc,
-                    "Precision": precision_score(preds["churn_actual"], pred_labels),
-                    "Recall": recall_score(preds["churn_actual"], pred_labels),
-                    "F1": f1_score(preds["churn_actual"], pred_labels),
-                    "Accuracy": accuracy_score(preds["churn_actual"], pred_labels),
-                })
+                results.append(
+                    {
+                        "Model": name,
+                        "AUC-ROC": auc,
+                        "Precision": precision_score(preds["churn_actual"], pred_labels),
+                        "Recall": recall_score(preds["churn_actual"], pred_labels),
+                        "F1": f1_score(preds["churn_actual"], pred_labels),
+                        "Accuracy": accuracy_score(preds["churn_actual"], pred_labels),
+                    }
+                )
                 print(f"\n{name}: AUC={auc:.4f}")
 
     if results:

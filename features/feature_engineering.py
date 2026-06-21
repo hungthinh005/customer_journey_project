@@ -157,19 +157,21 @@ def build_rfm_features(df, reference_date):
     - frequency: number of unique transactions
     - monetary: total spending
     """
-    customer_features = df.groupby("customer_id").agg(
-        last_purchase=("invoice_date", "max"),
-        first_purchase=("invoice_date", "min"),
-        frequency=("invoice_no", "nunique"),
-        monetary=("total_amount", "sum"),
-        n_items=("quantity", "sum"),
-        n_unique_products=("stock_code", "nunique"),
-        n_records=("invoice_no", "count"),
-    ).reset_index()
+    customer_features = (
+        df.groupby("customer_id")
+        .agg(
+            last_purchase=("invoice_date", "max"),
+            first_purchase=("invoice_date", "min"),
+            frequency=("invoice_no", "nunique"),
+            monetary=("total_amount", "sum"),
+            n_items=("quantity", "sum"),
+            n_unique_products=("stock_code", "nunique"),
+            n_records=("invoice_no", "count"),
+        )
+        .reset_index()
+    )
 
-    customer_features["recency"] = (
-        reference_date - customer_features["last_purchase"]
-    ).dt.days
+    customer_features["recency"] = (reference_date - customer_features["last_purchase"]).dt.days
 
     return customer_features
 
@@ -208,13 +210,13 @@ def build_behavioral_features(df, customer_features):
     customer_features = customer_features.merge(intervals, on="customer_id", how="left")
 
     # Product diversity
-    customer_features["product_diversity"] = (
-        customer_features["n_unique_products"] / customer_features["n_items"].clip(lower=1)
+    customer_features["product_diversity"] = customer_features["n_unique_products"] / customer_features["n_items"].clip(
+        lower=1
     )
 
     # Avg quantity per transaction
-    customer_features["avg_quantity_per_txn"] = (
-        customer_features["n_items"] / customer_features["frequency"].clip(lower=1)
+    customer_features["avg_quantity_per_txn"] = customer_features["n_items"] / customer_features["frequency"].clip(
+        lower=1
     )
 
     # Return rate (set to 0 since we removed returns in cleaning)
@@ -237,9 +239,9 @@ def create_churn_labels(customer_features, df, splits):
     label_end = splits["test_label_end"]
 
     # Get customers who made purchases in the label window
-    future_purchases = df[
-        (df["invoice_date"] > label_start) & (df["invoice_date"] <= label_end)
-    ]["customer_id"].unique()
+    future_purchases = df[(df["invoice_date"] > label_start) & (df["invoice_date"] <= label_end)][
+        "customer_id"
+    ].unique()
 
     # Label: 1 = churned, 0 = retained
     customer_features["churn"] = (~customer_features["customer_id"].isin(future_purchases)).astype(int)
@@ -248,7 +250,7 @@ def create_churn_labels(customer_features, df, splits):
     print(f"\n  Churn labeling (window={CHURN_WINDOW_DAYS} days):")
     print(f"    Total customers: {len(customer_features):,}")
     print(f"    Churned: {customer_features['churn'].sum():,} ({churn_rate:.1%})")
-    print(f"    Retained: {(1 - customer_features['churn']).sum():,.0f} ({1-churn_rate:.1%})")
+    print(f"    Retained: {(1 - customer_features['churn']).sum():,.0f} ({1 - churn_rate:.1%})")
 
     return customer_features
 
@@ -258,13 +260,17 @@ def create_interaction_dataset(df):
     Create user-item interaction dataset for recommendation models.
     Each row represents a (customer_id, stock_code) pair with interaction strength.
     """
-    interactions = df.groupby(["customer_id", "stock_code"]).agg(
-        n_purchases=("invoice_no", "nunique"),
-        total_quantity=("quantity", "sum"),
-        total_amount=("total_amount", "sum"),
-        last_purchase=("invoice_date", "max"),
-        first_purchase=("invoice_date", "min"),
-    ).reset_index()
+    interactions = (
+        df.groupby(["customer_id", "stock_code"])
+        .agg(
+            n_purchases=("invoice_no", "nunique"),
+            total_quantity=("quantity", "sum"),
+            total_amount=("total_amount", "sum"),
+            last_purchase=("invoice_date", "max"),
+            first_purchase=("invoice_date", "min"),
+        )
+        .reset_index()
+    )
 
     # Create implicit rating (log-scaled purchase count)
     interactions["rating"] = np.log1p(interactions["n_purchases"])
@@ -273,20 +279,26 @@ def create_interaction_dataset(df):
     print(f"    Records: {len(interactions):,}")
     print(f"    Unique users: {interactions['customer_id'].nunique():,}")
     print(f"    Unique items: {interactions['stock_code'].nunique():,}")
-    print(f"    Sparsity: {1 - len(interactions) / (interactions['customer_id'].nunique() * interactions['stock_code'].nunique()):.4%}")
+    print(
+        f"    Sparsity: {1 - len(interactions) / (interactions['customer_id'].nunique() * interactions['stock_code'].nunique()):.4%}"
+    )
 
     return interactions
 
 
 def create_item_metadata(df):
     """Create item metadata from transaction data."""
-    items = df.groupby("stock_code").agg(
-        description=("description", "first"),
-        avg_price=("price", "mean"),
-        total_sold=("quantity", "sum"),
-        n_customers=("customer_id", "nunique"),
-        n_transactions=("invoice_no", "nunique"),
-    ).reset_index()
+    items = (
+        df.groupby("stock_code")
+        .agg(
+            description=("description", "first"),
+            avg_price=("price", "mean"),
+            total_sold=("quantity", "sum"),
+            n_customers=("customer_id", "nunique"),
+            n_transactions=("invoice_no", "nunique"),
+        )
+        .reset_index()
+    )
 
     return items
 
@@ -367,9 +379,7 @@ def run_pipeline():
     scaler = StandardScaler()
     customer_features[feature_cols] = customer_features[feature_cols].fillna(0)
     customer_features_scaled = customer_features.copy()
-    customer_features_scaled[feature_cols] = scaler.fit_transform(
-        customer_features[feature_cols]
-    )
+    customer_features_scaled[feature_cols] = scaler.fit_transform(customer_features[feature_cols])
 
     # Save everything
     print("\n" + "=" * 60)
@@ -390,6 +400,7 @@ def run_pipeline():
 
     # Save scaler
     import joblib
+
     joblib.dump(scaler, DATA_PROCESSED_DIR / "scaler.joblib")
 
     print(f"\n  All files saved to: {DATA_PROCESSED_DIR}")

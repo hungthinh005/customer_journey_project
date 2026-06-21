@@ -19,9 +19,15 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from config import (
-    DATA_PROCESSED_DIR, EMBEDDING_DIM, MODELS_DIR,
-    RANDOM_SEED, RANKING_BATCH_SIZE, RANKING_EPOCHS,
-    RANKING_GMF_DIM, RANKING_LR, RANKING_MLP_DIMS,
+    DATA_PROCESSED_DIR,
+    EMBEDDING_DIM,
+    MODELS_DIR,
+    RANDOM_SEED,
+    RANKING_BATCH_SIZE,
+    RANKING_EPOCHS,
+    RANKING_GMF_DIM,
+    RANKING_LR,
+    RANKING_MLP_DIMS,
 )
 
 torch.manual_seed(RANDOM_SEED)
@@ -61,17 +67,22 @@ class NeuMF(nn.Module):
         layers = []
         prev_dim = mlp_input
         for dim in mlp_dims:
-            layers.extend([
-                nn.Linear(prev_dim, dim), nn.ReLU(),
-                nn.BatchNorm1d(dim), nn.Dropout(0.2),
-            ])
+            layers.extend(
+                [
+                    nn.Linear(prev_dim, dim),
+                    nn.ReLU(),
+                    nn.BatchNorm1d(dim),
+                    nn.Dropout(0.2),
+                ]
+            )
             prev_dim = dim
         self.mlp = nn.Sequential(*layers)
 
         # Final prediction
         self.output = nn.Sequential(
             nn.Linear(RANKING_GMF_DIM + mlp_dims[-1], 64),
-            nn.ReLU(), nn.Dropout(0.1),
+            nn.ReLU(),
+            nn.Dropout(0.1),
             nn.Linear(64, 1),
         )
         self._init_weights()
@@ -167,8 +178,7 @@ def prepare_ranking_data():
         train_churn.append(float(churn_prob))
         train_labels.append(0.0)
 
-    return (np.array(train_user_embs), np.array(train_item_embs),
-            np.array(train_churn), np.array(train_labels))
+    return (np.array(train_user_embs), np.array(train_item_embs), np.array(train_churn), np.array(train_labels))
 
 
 def train_ranking():
@@ -193,7 +203,7 @@ def train_ranking():
     for epoch in range(RANKING_EPOCHS):
         model.train()
         total_loss, n_batches = 0, 0
-        for u, i, c, label in tqdm(dataloader, desc=f"Epoch {epoch+1}/{RANKING_EPOCHS}", leave=False):
+        for u, i, c, label in tqdm(dataloader, desc=f"Epoch {epoch + 1}/{RANKING_EPOCHS}", leave=False):
             u, i, c, label = u.to(DEVICE), i.to(DEVICE), c.to(DEVICE), label.to(DEVICE)
             optimizer.zero_grad()
             loss = criterion(model(u, i, c), label)
@@ -202,7 +212,7 @@ def train_ranking():
             total_loss += loss.item()
             n_batches += 1
         if (epoch + 1) % 5 == 0 or epoch == 0:
-            print(f"  Epoch {epoch+1}: Loss = {total_loss/max(n_batches,1):.4f}")
+            print(f"  Epoch {epoch + 1}: Loss = {total_loss / max(n_batches, 1):.4f}")
 
     print("\n[3/3] Saving model...")
     save_dir = MODELS_DIR / "ranking"

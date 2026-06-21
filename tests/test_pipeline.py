@@ -2,15 +2,20 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 def test_config_imports():
     """Test that config module loads correctly."""
     from config import (
-        CHURN_WINDOW_DAYS, DATA_PROCESSED_DIR, DATA_RAW_DIR,
-        EMBEDDING_DIM, RANDOM_SEED,
+        CHURN_WINDOW_DAYS,
+        DATA_PROCESSED_DIR,
+        DATA_RAW_DIR,
+        EMBEDDING_DIM,
+        RANDOM_SEED,
     )
+
     assert CHURN_WINDOW_DAYS == 90
     assert EMBEDDING_DIM == 64
     assert RANDOM_SEED == 42

@@ -40,11 +40,7 @@ def _upsert(session, model, rows, index_elements):
     for start in range(0, len(rows), batch_size):
         batch = rows[start : start + batch_size]
         stmt = insert(table).values(batch)
-        update_cols = {
-            c.name: stmt.excluded[c.name]
-            for c in table.columns
-            if c.name not in index_elements
-        }
+        update_cols = {c.name: stmt.excluded[c.name] for c in table.columns if c.name not in index_elements}
         stmt = stmt.on_conflict_do_update(index_elements=index_elements, set_=update_cols)
         session.execute(stmt)
         total += len(batch)
@@ -59,9 +55,15 @@ def load_customer_features():
 
     df = pd.read_parquet(path)
     cols = [
-        "recency", "frequency", "monetary", "avg_basket_size",
-        "avg_purchase_interval", "product_diversity", "avg_quantity_per_txn",
-        "return_rate", "days_as_customer",
+        "recency",
+        "frequency",
+        "monetary",
+        "avg_basket_size",
+        "avg_purchase_interval",
+        "product_diversity",
+        "avg_quantity_per_txn",
+        "return_rate",
+        "days_as_customer",
     ]
     rows = []
     for _, r in df.iterrows():
@@ -99,15 +101,19 @@ def load_churn_predictions(model_version="latest"):
     for _, r in df.iterrows():
         cid = int(r["customer_id"])
         prob = float(r[prob_col]) if prob_col and pd.notna(r[prob_col]) else 0.5
-        rows.append({
-            "customer_id": cid,
-            "churn_probability": prob,
-            "p_alive": float(r["p_alive"]) if "p_alive" in df.columns and pd.notna(r.get("p_alive")) else None,
-            "predicted_clv": float(r["predicted_clv"]) if "predicted_clv" in df.columns and pd.notna(r.get("predicted_clv")) else None,
-            "churn_risk_level": _risk_level(prob),
-            "model_version": model_version,
-            "scored_at": datetime.utcnow(),
-        })
+        rows.append(
+            {
+                "customer_id": cid,
+                "churn_probability": prob,
+                "p_alive": float(r["p_alive"]) if "p_alive" in df.columns and pd.notna(r.get("p_alive")) else None,
+                "predicted_clv": float(r["predicted_clv"])
+                if "predicted_clv" in df.columns and pd.notna(r.get("predicted_clv"))
+                else None,
+                "churn_risk_level": _risk_level(prob),
+                "model_version": model_version,
+                "scored_at": datetime.utcnow(),
+            }
+        )
 
     with session_scope() as session:
         n = _upsert(session, ChurnPrediction, rows, ["customer_id"])

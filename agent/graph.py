@@ -23,6 +23,7 @@ def llm_available() -> bool:
     try:
         import langgraph  # noqa: F401
         import langchain_openai  # noqa: F401
+
         return True
     except Exception:
         return False
@@ -63,11 +64,7 @@ def compose_with_agent(customer_id: int, segment: str, playbook: str, max_discou
     )
 
     messages = result["messages"]
-    tools_used = [
-        tc["name"]
-        for m in messages
-        for tc in (getattr(m, "tool_calls", None) or [])
-    ]
+    tools_used = [tc["name"] for m in messages for tc in (getattr(m, "tool_calls", None) or [])]
     final = messages[-1].content if messages else ""
     plan = _extract_json(final)
     plan["_tools_used"] = tools_used

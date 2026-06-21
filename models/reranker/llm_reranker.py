@@ -26,14 +26,14 @@ def build_user_summary(customer_id, customer_features, interactions):
     user_items = interactions[interactions["customer_id"] == customer_id]
 
     summary = f"""Customer #{customer_id}:
-- Total spending: ${user.get('monetary', 0):.2f}
-- Number of purchases: {user.get('frequency', 0)}
-- Days since last purchase: {user.get('recency', 'N/A')}
-- Average basket size: {user.get('avg_basket_size', 'N/A'):.1f} items
-- Product diversity: {user.get('product_diversity', 'N/A'):.2f}
-- Purchase interval: {user.get('avg_purchase_interval', 'N/A'):.1f} days
-- Days as customer: {user.get('days_as_customer', 'N/A')}
-- Most purchased products: {', '.join(user_items.nlargest(5, 'total_quantity')['stock_code'].tolist()) if len(user_items) > 0 else 'N/A'}"""
+- Total spending: ${user.get("monetary", 0):.2f}
+- Number of purchases: {user.get("frequency", 0)}
+- Days since last purchase: {user.get("recency", "N/A")}
+- Average basket size: {user.get("avg_basket_size", "N/A"):.1f} items
+- Product diversity: {user.get("product_diversity", "N/A"):.2f}
+- Purchase interval: {user.get("avg_purchase_interval", "N/A"):.1f} days
+- Days as customer: {user.get("days_as_customer", "N/A")}
+- Most purchased products: {", ".join(user_items.nlargest(5, "total_quantity")["stock_code"].tolist()) if len(user_items) > 0 else "N/A"}"""
 
     return summary
 
@@ -55,9 +55,15 @@ def build_product_info(item_ids, item_metadata):
     return "\n".join(products)
 
 
-def rerank_with_llm(customer_id, candidate_items, candidate_scores,
-                    customer_features, item_metadata, interactions,
-                    churn_probability=None):
+def rerank_with_llm(
+    customer_id,
+    candidate_items,
+    candidate_scores,
+    customer_features,
+    item_metadata,
+    interactions,
+    churn_probability=None,
+):
     """
     Use LLM to rerank candidate items based on user context.
 
@@ -69,6 +75,7 @@ def rerank_with_llm(customer_id, candidate_items, candidate_scores,
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=OPENAI_API_KEY)
     except ImportError:
         print("  ⚠️ openai package not installed. Using original ranking.")

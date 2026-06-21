@@ -22,6 +22,7 @@ from settings import settings
 @functools.lru_cache(maxsize=1)
 def _interactions():
     import pandas as pd
+
     path = DATA_PROCESSED_DIR / "interactions.parquet"
     return pd.read_parquet(path) if path.exists() else None
 
@@ -29,11 +30,13 @@ def _interactions():
 @functools.lru_cache(maxsize=1)
 def _item_metadata():
     import pandas as pd
+
     path = DATA_PROCESSED_DIR / "item_metadata.parquet"
     return pd.read_parquet(path) if path.exists() else None
 
 
 # ---- Plain implementations (used by both tools and the fallback) ----
+
 
 def profile(customer_id: int) -> dict:
     return repository.get_customer_features(int(customer_id)) or {"customer_id": int(customer_id)}
@@ -41,8 +44,10 @@ def profile(customer_id: int) -> dict:
 
 def churn_and_clv(customer_id: int) -> dict:
     return repository.get_churn_prediction(int(customer_id)) or {
-        "churn_probability": 0.5, "churn_risk_level": "MEDIUM",
-        "p_alive": None, "predicted_clv": None,
+        "churn_probability": 0.5,
+        "churn_risk_level": "MEDIUM",
+        "p_alive": None,
+        "predicted_clv": None,
     }
 
 
@@ -66,12 +71,14 @@ def purchase_history(customer_id: int, top_n: int = 10) -> list:
             m = meta[meta["stock_code"] == r["stock_code"]]
             if not m.empty:
                 desc = m.iloc[0]["description"]
-        out.append({
-            "stock_code": str(r["stock_code"]),
-            "description": desc,
-            "n_purchases": int(r["n_purchases"]),
-            "total_quantity": int(r["total_quantity"]),
-        })
+        out.append(
+            {
+                "stock_code": str(r["stock_code"]),
+                "description": desc,
+                "n_purchases": int(r["n_purchases"]),
+                "total_quantity": int(r["total_quantity"]),
+            }
+        )
     return out
 
 

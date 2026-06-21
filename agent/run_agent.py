@@ -29,9 +29,7 @@ def _new_run_id() -> str:
 def _fallback_plan(customer_id, segment, playbook, ctx):
     """Deterministic, no-LLM outreach plan (also the safety net on LLM failure)."""
     recs = ctx["recommendations"][:5] or ctx["history"][:5]
-    item_lines = [
-        f"- {r.get('description') or r['stock_code']}" for r in recs
-    ] or ["- A selection of our best-sellers"]
+    item_lines = [f"- {r.get('description') or r['stock_code']}" for r in recs] or ["- A selection of our best-sellers"]
 
     discount_pct = 0
     offer_type = "none"
@@ -99,11 +97,16 @@ def run_for_customer(customer_id: int, run_id: str = None) -> dict:
     # ---- Guardrail: frequency capping ----
     if was_recently_contacted(customer_id, settings.agent_frequency_cap_days):
         with session_scope() as session:
-            session.add(AgentRun(
-                run_id=run_id, customer_id=customer_id, segment=segment_name,
-                status="skipped_frequency_cap", strategy="skipped",
-                reasoning=f"Contacted within {settings.agent_frequency_cap_days} days.",
-            ))
+            session.add(
+                AgentRun(
+                    run_id=run_id,
+                    customer_id=customer_id,
+                    segment=segment_name,
+                    status="skipped_frequency_cap",
+                    strategy="skipped",
+                    reasoning=f"Contacted within {settings.agent_frequency_cap_days} days.",
+                )
+            )
         return {"customer_id": customer_id, "status": "skipped_frequency_cap", "run_id": run_id}
 
     # ---- Gather context (also feeds the fallback) ----
@@ -113,9 +116,7 @@ def run_for_customer(customer_id: int, run_id: str = None) -> dict:
         "history": tools.purchase_history(customer_id),
         "recommendations": tools.recommendations(customer_id, top_k=10),
     }
-    allowed_items = {r["stock_code"] for r in ctx["recommendations"]} | {
-        r["stock_code"] for r in ctx["history"]
-    }
+    allowed_items = {r["stock_code"] for r in ctx["recommendations"]} | {r["stock_code"] for r in ctx["history"]}
 
     # ---- Compose (agent or fallback) ----
     used_agent = False
@@ -134,30 +135,45 @@ def run_for_customer(customer_id: int, run_id: str = None) -> dict:
     # ---- Persist trace + recommendations ----
     to_address = ctx["profile"].get("email") or f"customer{customer_id}@example.com"
     with session_scope() as session:
-        session.add(AgentRun(
-            run_id=run_id, customer_id=customer_id, segment=segment_name,
-            churn_probability=ctx["churn"].get("churn_probability"),
-            strategy=plan.get("strategy"),
-            reasoning=plan.get("reasoning"),
-            tools_used=plan.get("_tools_used"),
-            recommended_items=plan.get("recommended_items"),
-            offer=plan.get("offer"),
-            status="agent" if used_agent else "fallback",
-        ))
+        session.add(
+            AgentRun(
+                run_id=run_id,
+                customer_id=customer_id,
+                segment=segment_name,
+                churn_probability=ctx["churn"].get("churn_probability"),
+                strategy=plan.get("strategy"),
+                reasoning=plan.get("reasoning"),
+                tools_used=plan.get("_tools_used"),
+                recommended_items=plan.get("recommended_items"),
+                offer=plan.get("offer"),
+                status="agent" if used_agent else "fallback",
+            )
+        )
         for rank, code in enumerate(plan.get("recommended_items", []), 1):
             desc = next((r.get("description") for r in ctx["recommendations"] if r["stock_code"] == code), None)
-            session.add(Recommendation(
-                run_id=run_id, customer_id=customer_id, stock_code=code,
-                description=desc, rank=rank, score=None,
-            ))
+            session.add(
+                Recommendation(
+                    run_id=run_id,
+                    customer_id=customer_id,
+                    stock_code=code,
+                    description=desc,
+                    rank=rank,
+                    score=None,
+                )
+            )
 
     # ---- Send notification ----
     send_result = notifier.send_email(to_address, plan["subject"], plan["body"])
     with session_scope() as session:
         notif = Notification(
-            run_id=run_id, customer_id=customer_id, channel="email",
-            to_address=to_address, subject=plan["subject"], body=plan["body"],
-            offer=plan.get("offer"), status=send_result["status"],
+            run_id=run_id,
+            customer_id=customer_id,
+            channel="email",
+            to_address=to_address,
+            subject=plan["subject"],
+            body=plan["body"],
+            offer=plan.get("offer"),
+            status=send_result["status"],
             error=send_result.get("error"),
             sent_at=datetime.utcnow() if send_result["status"] == "sent" else None,
         )

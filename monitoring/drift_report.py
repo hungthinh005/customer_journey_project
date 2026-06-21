@@ -20,6 +20,7 @@ REPORT_DIR = PROJECT_ROOT / "monitoring" / "reports"
 
 def _load_reference():
     import pandas as pd
+
     path = DATA_PROCESSED_DIR / "customer_features.parquet"
     return pd.read_parquet(path) if path.exists() else None
 
@@ -27,6 +28,7 @@ def _load_reference():
 def _load_current():
     import pandas as pd
     from db.session import engine
+
     try:
         return pd.read_sql("SELECT * FROM customer_features", engine)
     except Exception as e:
