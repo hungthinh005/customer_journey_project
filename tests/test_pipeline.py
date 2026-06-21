@@ -9,7 +9,7 @@ def test_config_imports():
     """Test that config module loads correctly."""
     from config import (
         CHURN_WINDOW_DAYS, DATA_PROCESSED_DIR, DATA_RAW_DIR,
-        EMBEDDING_DIM, MODELS_DIR, RANDOM_SEED,
+        EMBEDDING_DIM, RANDOM_SEED,
     )
     assert CHURN_WINDOW_DAYS == 90
     assert EMBEDDING_DIM == 64
@@ -20,7 +20,7 @@ def test_config_imports():
 
 def test_schemas():
     """Test API schemas."""
-    from api.schemas import PredictionRequest, PredictionResponse, ProductRecommendation
+    from api.schemas import PredictionRequest, ProductRecommendation
 
     req = PredictionRequest(customer_id=12345, top_k=5)
     assert req.customer_id == 12345

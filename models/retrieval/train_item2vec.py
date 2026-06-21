@@ -60,7 +60,6 @@ def train_item2vec():
 
     # Load transactions
     transactions = pd.read_parquet(DATA_PROCESSED_DIR / "transactions_clean.parquet")
-    interactions = pd.read_parquet(DATA_PROCESSED_DIR / "interactions.parquet")
     print(f"\nLoaded {len(transactions):,} transactions")
 
     # Build purchase sequences
