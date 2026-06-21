@@ -19,10 +19,6 @@ An end-to-end, production-like ML system that combines **Churn Prediction**, a *
 
 ## Architecture
 
-### v2 — Production (current)
-![System Architecture v2](system_architecture_v2.png)
-
-### v1 — Original batch pipeline
 ![System Architecture v1](system_architecture.png)
 
 ---
