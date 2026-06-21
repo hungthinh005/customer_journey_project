@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from config import DATA_PROCESSED_DIR, EVAL_K_VALUES, MODELS_DIR
+from config import DATA_PROCESSED_DIR, MODELS_DIR
 
 
 def ablation_study():
@@ -26,10 +26,8 @@ def ablation_study():
     save_dir = MODELS_DIR.parent / "evaluation"
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load customer features with churn
-    try:
-        customers = pd.read_parquet(DATA_PROCESSED_DIR / "customer_features.parquet")
-    except FileNotFoundError:
+    # Verify feature engineering has been run before proceeding.
+    if not (DATA_PROCESSED_DIR / "customer_features.parquet").exists():
         print("  Run feature engineering first!")
         return
 

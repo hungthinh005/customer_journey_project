@@ -1,0 +1,14 @@
+[lint]
+select = ["F", "E", "W"]
+ignore = [
+    "E402",  # module-level import not at top (needed for matplotlib.use("Agg") before pyplot)
+]
+
+[lint.per-file-ignores]
+# Evaluation scripts use matplotlib backend setup before pyplot import
+"evaluation/*.py" = ["E402"]
+
+[format]
+# Keep existing formatting style
+quote-style = "double"
+indent-style = "space"
