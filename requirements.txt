@@ -32,6 +32,19 @@ pydantic==2.5.0
 # LLM Reranker
 openai==2.33.0
 
+# Serving store + config + metrics + agent HTTP client (API container & tests)
+SQLAlchemy==1.4.52
+psycopg2-binary==2.9.9
+pydantic-settings==2.1.0
+prometheus-client==0.21.0
+requests==2.32.3
+tenacity==8.3.0
+
+# NOTE: the AI-agent stack (langgraph, langchain-openai), MLflow, Evidently and
+# Airflow run inside the Airflow image and are pinned in requirements-airflow.txt.
+# They are intentionally NOT installed here: the agent modules import them lazily
+# and they would conflict with this image's pandas/openai/pydantic pins.
+
 # Evaluation & Visualization
 matplotlib==3.7.2
 seaborn==0.12.2

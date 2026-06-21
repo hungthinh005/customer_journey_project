@@ -46,3 +46,15 @@ notebooks/*.ipynb
 
 # Environment
 .env
+
+# Airflow / orchestration runtime
+logs/
+airflow.db
+airflow.cfg
+webserver_config.py
+
+# Monitoring reports
+monitoring/reports/
+
+# MLflow local runs
+mlruns/

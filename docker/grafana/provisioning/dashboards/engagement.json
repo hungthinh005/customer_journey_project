@@ -1,0 +1,40 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Prediction requests (total)",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(cjp_prediction_requests_total)", "legendFormat": "requests" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Prediction latency (p95, seconds)",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(cjp_prediction_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Churn predictions served by risk level",
+      "datasource": "Prometheus",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "sum by (risk_level) (cjp_churn_risk_total)", "legendFormat": "{{risk_level}}" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "title": "Customer Journey - Engagement & API",
+  "uid": "cjp-engagement",
+  "version": 1
+}

@@ -1,0 +1,51 @@
+# Dependencies installed on top of the official apache/airflow base image.
+# NOTE: apache-airflow itself is provided by the base image - do NOT pin it here
+# (doing so causes provider/constraint conflicts).
+
+# Data
+pandas==2.2.2
+numpy==1.26.4
+openpyxl==3.1.5
+pyarrow==16.1.0
+
+# ML & Statistics
+scikit-learn==1.4.0
+lightgbm==4.6.0
+Lifetimes==0.11.3
+lifelines==0.30.0
+
+# Recommendation
+implicit==0.7.2
+gensim==4.4.0
+# gensim pulls smart_open -> boto3 -> botocore -> pyOpenSSL.
+# The Airflow base image ships a cryptography version incompatible with
+# pyOpenSSL < 23.3.0 (missing GEN_EMAIL). Force-upgrade it here.
+pyOpenSSL>=23.3.0
+cryptography>=41.0.0
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1
+
+# Vector Search
+faiss-cpu==1.13.2
+
+# Serving store + experiment tracking
+SQLAlchemy==1.4.52
+psycopg2-binary==2.9.9
+mlflow==2.16.2
+
+# Agent
+openai==1.51.0
+langgraph==0.2.28
+langchain-core==0.3.9
+langchain-openai==0.2.1
+pydantic-settings==2.5.2
+tenacity==8.3.0
+
+# Monitoring
+evidently==0.4.40
+
+# Utilities
+joblib==1.3.2
+tqdm==4.67.1
+scipy==1.11.3
