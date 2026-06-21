@@ -17,6 +17,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import DATA_PROCESSED_DIR, EMBEDDING_DIM, FAISS_DIR, MODELS_DIR, RANKING_MLP_DIMS
 from models.ranking.train_ranking import NeuMF
 
+try:
+    from settings import settings
+    _READ_FROM_DB = settings.read_from_db
+except Exception:
+    _READ_FROM_DB = False
+
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -28,6 +34,7 @@ class InferenceEngine:
             "churn_model": False, "retrieval": False,
             "faiss_index": False, "ranking_model": False,
         }
+        self.read_from_db = _READ_FROM_DB
         self._load_models()
 
     def _load_models(self):
@@ -105,8 +112,25 @@ class InferenceEngine:
             self.bgnbd_summary = None
 
     def get_churn_prediction(self, customer_id):
-        """Get churn probability for a customer."""
+        """Get churn probability for a customer.
+
+        Reads from the Postgres serving store first (when READ_FROM_DB is on),
+        falling back to the precomputed parquet predictions loaded at startup.
+        """
         result = {"churn_probability": 0.5, "p_alive": None, "predicted_clv": None}
+
+        if self.read_from_db:
+            try:
+                from db.repository import get_churn_prediction as _db_churn
+                db_row = _db_churn(int(customer_id))
+                if db_row is not None:
+                    return {
+                        "churn_probability": db_row["churn_probability"],
+                        "p_alive": db_row.get("p_alive"),
+                        "predicted_clv": db_row.get("predicted_clv"),
+                    }
+            except Exception as e:
+                print(f"  [WARN] DB churn lookup failed, using parquet: {e}")
 
         if not self.loaded["churn_model"]:
             return result

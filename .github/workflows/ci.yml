@@ -105,6 +105,23 @@ jobs:
     name: Training Pipeline
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: cjp
+          POSTGRES_PASSWORD: cjp_password
+          POSTGRES_DB: cjp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cjp"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+psycopg2://cjp:cjp_password@localhost:5432/cjp
+      AGENT_DRY_RUN: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -151,6 +168,11 @@ jobs:
           python evaluation/evaluate_churn.py
           python evaluation/evaluate_rec.py
           python evaluation/ablation_study.py
+
+      - name: Load serving store + segment customers
+        run: |
+          python db/load_to_db.py
+          python segmentation/segment_users.py
 
       - name: Upload model artifacts
         uses: actions/upload-artifact@v4

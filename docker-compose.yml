@@ -1,21 +1,217 @@
+# ============================================================
+# Customer Journey Project - Production-like local stack
+#
+#   docker compose up postgres mailhog mlflow churn-api   # core services
+#   docker compose --profile airflow up                   # + orchestration
+#   docker compose --profile monitoring up                # + prometheus/grafana
+#   docker compose --profile all up                       # everything
+#
+# UIs:
+#   API .......... http://localhost:8000/docs
+#   Airflow ...... http://localhost:8080   (airflow / airflow)
+#   MailHog ...... http://localhost:8025
+#   MLflow ....... http://localhost:5000
+#   Grafana ...... http://localhost:3000   (admin / admin)
+# ============================================================
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.airflow
+  image: cjp/airflow:latest
+  environment: &airflow-env
+    GIT_PYTHON_REFRESH: quiet
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-cjp}:${POSTGRES_PASSWORD:-cjp_password}@postgres:5432/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY:-change-me-in-prod}
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    PYTHONPATH: /opt/airflow/project
+    # App / business config consumed by DAG tasks
+    DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-cjp}:${POSTGRES_PASSWORD:-cjp_password}@postgres:5432/${POSTGRES_DB:-cjp}
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    AGENT_LLM_MODEL: ${AGENT_LLM_MODEL:-gpt-4o-mini}
+    AGENT_TEMPERATURE: ${AGENT_TEMPERATURE:-0.3}
+    AGENT_MAX_DISCOUNT: ${AGENT_MAX_DISCOUNT:-0.20}
+    AGENT_FREQUENCY_CAP_DAYS: ${AGENT_FREQUENCY_CAP_DAYS:-7}
+    AGENT_DRY_RUN: ${AGENT_DRY_RUN:-false}
+    SMTP_HOST: ${SMTP_HOST:-mailhog}
+    SMTP_PORT: ${SMTP_PORT:-1025}
+    SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-retention@customer-journey.local}
+    SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Customer Journey Retention}
+    SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
+    MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://mlflow:5000}
+    MLFLOW_EXPERIMENT: ${MLFLOW_EXPERIMENT:-churn-prevention}
+    API_BASE_URL: ${API_BASE_URL:-http://churn-api:8000}
+    API_KEY: ${API_KEY:-local-dev-key}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - .:/opt/airflow/project
+  depends_on:
+    postgres:
+      condition: service_healthy
+
 services:
-  churn-prevention-api:
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-    image: garizz/churn-prevention-api:v1
-    container_name: churn-prevention-api
-    ports:
-      - "8000:8000"
+  # ----------------------------------------------------------
+  # Postgres: serving store + Airflow & MLflow metadata
+  # ----------------------------------------------------------
+  postgres:
+    image: postgres:15
+    container_name: cjp-postgres
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      POSTGRES_USER: ${POSTGRES_USER:-cjp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cjp_password}
+      POSTGRES_DB: ${POSTGRES_DB:-cjp}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cjp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # MailHog: mock SMTP server + web inbox
+  # ----------------------------------------------------------
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: cjp-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # MLflow: experiment tracking + model registry
+  # ----------------------------------------------------------
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mlflow
+    image: cjp/mlflow:latest
+    container_name: cjp-mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql+psycopg2://${POSTGRES_USER:-cjp}:${POSTGRES_PASSWORD:-cjp_password}@postgres:5432/mlflow
+      --default-artifact-root /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # Churn + Recommendation API (FastAPI)
+  # ----------------------------------------------------------
+  churn-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cjp/churn-api:latest
+    container_name: cjp-churn-api
+    ports:
+      - "8001:8000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-cjp}:${POSTGRES_PASSWORD:-cjp_password}@postgres:5432/${POSTGRES_DB:-cjp}
+      API_KEY: ${API_KEY:-local-dev-key}
+      READ_FROM_DB: ${READ_FROM_DB:-true}
     volumes:
       - ./data:/app/data
       - ./models:/app/models
       - ./faiss_index:/app/faiss_index
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # ----------------------------------------------------------
+  # Airflow (LocalExecutor) - profile: airflow
+  # ----------------------------------------------------------
+  airflow-init:
+    <<: *airflow-common
+    container_name: cjp-airflow-init
+    profiles: ["airflow", "all"]
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username "${_AIRFLOW_WWW_USER_USERNAME:-airflow}" \
+          --password "${_AIRFLOW_WWW_USER_PASSWORD:-airflow}" \
+          --firstname Admin --lastname User --role Admin \
+          --email admin@example.com || true
+    restart: on-failure
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: cjp-airflow-webserver
+    profiles: ["airflow", "all"]
+    command: webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: cjp-airflow-scheduler
+    profiles: ["airflow", "all"]
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # Monitoring - profile: monitoring
+  # ----------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cjp-prometheus
+    profiles: ["monitoring", "all"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cjp-grafana
+    profiles: ["monitoring", "all"]
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  mlflow_artifacts:
+  grafana_data:

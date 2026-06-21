@@ -63,6 +63,17 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 
+# Airflow runtime files (contain symlinks unreadable by Docker on Windows)
+logs/
+airflow.db
+airflow.cfg
+
+# Monitoring reports
+monitoring/reports/
+
+# MLflow local runs
+mlruns/
+
 # Catch-all for stray data/model files
 *.csv
 *.parquet
